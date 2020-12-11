@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Chrome against localhost",
+            "url": "http://localhost:3000/resources/js-ui/",
+            "webRoot": "${workspaceFolder}/scadalts-ui/src",
+            "pathMapping": {
+                "/resources/js-ui/": "${workspaceFolder}/scadalts-ui/public/index.html"
+            },
+            "trace": true   
+        }
+    ]
+}

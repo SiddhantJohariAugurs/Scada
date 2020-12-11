@@ -1,0 +1,1 @@
+Visit following link to acknowledge: ${ackUri}

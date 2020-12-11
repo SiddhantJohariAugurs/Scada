@@ -1,0 +1,139 @@
+.resetTable__fontSize {
+	font-size: 16px;
+}
+
+.backgroundImage {
+	display: none;
+}
+.componentElemet {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	top: 0;
+	pointer-events: none;
+}
+div#componentElemet * {
+	pointer-events: all;
+}
+.relative-table {
+	position: relative;
+}
+.gm-style-iw-d>div>div {
+	position: relative !important;
+	top: 0 !important;
+	left: 0 !important;
+}
+.gm-style-iw-d .controlsDiv {
+	position: relative;
+	float: left;
+	visibility: visible !important;
+	margin-top: 5px;
+	clear: left;
+}
+.gm-style-iw-d .wirelessTempHumSensorContent:not(:empty), .overlay .wirelessTempHumSensorContent:not(:empty)
+	{
+	min-width: 201px;
+	height: 100px;
+	margin-left: 21px;
+	position: relative;
+}
+.gm-style-iw-d .componentPt {
+	display: block;
+	float: left;
+}
+.overlay .componentPt {
+	display: block;
+	float: left;
+}
+
+.overlay .componentPt>div {
+	position: relative !important;
+}
+
+#mapAreaOptions {
+	display: none;
+}
+
+.overlay>div {
+	position: relative !important;
+	top: 0 !important;
+	left: 0 !important;
+}
+
+.overlay:hover .controlsDiv {
+	visibility: visible !important;
+}
+
+.overlay .wirelessTempHumSensorContent>div:first-child {
+	max-width: 201px;
+	margin-bottom: 7px;
+	top: 0 !important;
+}
+
+.overlay .wirelessTempHumSensorContent>div:not(:first-child) {
+	min-width: 50%;
+	left: 0 !important;
+	top: 0 !important;
+	float: left;
+}
+
+.overlay div .wirelessTempHumSensorContent>div {
+	position: relative !important;
+}
+
+/* toggle visibility of map-img */
+td.map__active input, td.map__active br, td.map__active label:not([for="googleMap"])
+	{
+	display: none;
+}
+
+td.img__active input, td.img__active br, td.img__active label[for="googleMap"]
+	{
+	display: none;
+}
+
+#componentGeneratorBtnInfo.map__active img {
+	display: none;
+}
+
+#componentGeneratorBtnInfo.img__active span {
+	display: none;
+}
+
+#componentGeneratorBtnInfo span {
+	font-size: 12px;
+	display: inline-block;
+	vertical-align: middle;
+	padding: 3px 5px;
+	background: rgba(74, 147, 200, 0.09);
+	color: #285a7d;
+	border: 1px solid rgba(74, 147, 200, 0.25);
+}
+.hide{
+	display: none !important;
+}
+
+.windowDiv .select2-container{
+	min-width: 80px;
+	max-width: 251px;
+	width: auto !important; 
+}
+.windowDiv .select2-container .select2-selection--multiple{
+	min-height: 16px;
+	border-radius: 0px;
+	padding-right: 0;
+	padding-bottom: 0;
+}
+.windowDiv .select2-container--default .select2-search--inline .select2-search__field{
+	margin-top: 1px;
+	margin-left: 0;
+	padding: 3px 2px;
+}
+.windowDiv .select2-container--default .select2-selection--multiple{
+	border-color: #39B54A;
+}
+.windowDiv .select2-container .selection{
+	display: block;
+	white-space: normal;
+}

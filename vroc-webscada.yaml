@@ -1,0 +1,245 @@
+# Requires the following config variables from Jenkins
+# $DEPLOYMENTTYPE   (should be set to '$DEPLOYMENTTYPE' or 'staging')
+# $DOCKERREGISTRY (the docker registry eg. 'docker.k8s.vroc.ai')
+# $IMAGENAME (the image of the docker image eg. '/vroc/vroc-api')
+# $VERSION (the version of the docker image eg. '2.7.0-SNAPSHOT')
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vroc-webscada-$DEPLOYMENTTYPE-db-mysql-pv-claim
+  namespace: vroc-webscada-$DEPLOYMENTTYPE
+  labels:
+    app: mysql
+spec:
+  storageClassName:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vroc-webscada-$DEPLOYMENTTYPE-app-uploads-pv-claim
+  namespace: vroc-webscada-$DEPLOYMENTTYPE
+  labels:
+    app: vroc-webscada-$DEPLOYMENTTYPE-app
+spec:
+  storageClassName:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vroc-webscada-$DEPLOYMENTTYPE-app-configmap
+  namespace: vroc-webscada-$DEPLOYMENTTYPE
+data:
+  "TZ": "Australia/Perth"
+  "WEBAUTH_LOGOUT_URL": "/logout"
+  "WEBAUTH_SUBNET": "10.0.0.0/8"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vroc-webscada-$DEPLOYMENTTYPE-app-env-configmap
+  namespace: vroc-webscada-$DEPLOYMENTTYPE
+data:
+  env.properties: >
+    db.type=mysql
+
+    db.url=jdbc:mysql://vroc-webscada-db-service:3306/scadabr?useSSL=false
+
+    db.username=vroc
+
+    db.password=sadlkJ39u329jfoejgeFDFdf3434
+
+    db.pool.maxActive=10
+
+    db.pool.maxIdle=10
+
+    js.optimizationlevel=-1
+
+    api.authentication=disabled
+
+    api.username=admin
+
+    api.password=admin
+
+    abilit.disableDataSourcesOnServerStart=false
+
+    abilit.api.replace.alert.onview=true
+
+    abilit.cacheEnable=true
+
+    abilit.START_UPDATE_UNSILENCED_ALARM_LEVEL=100000
+
+    abilit.START_UPDATE_EVENT_DETECTORS=100000
+
+    abilit.START_UPDATE_PENDING_EVENTS=100000
+
+    abilit.MILLIS_SECONDS_PERIOD_UPDATE_UNSILENCED_ALARM_LEVEL=1000
+
+    abilit.MILLIS_SECONDS_PERIOD_UPDATE_EVENT_DETECTORS=1000
+
+    abilit.MILLIS_SECONDS_PERIOD_UPDATE_PENDING_EVENTS=1000
+
+    abilit.CRONE_UPDATE_CACHE_POINT_HIERARCHY=0 0/10 * * * ?
+
+    # every minute
+
+    abilit.CRONE_UPDATE_DATA_SOURCES_POINTS=0 0/1 * * * ?
+
+    abilit.USE_CACHE_DATA_SOURCES_POINTS_WHEN_THE_SYSTEM_IS_READY=true
+
+    #Permission ACL
+
+    abilit.USE_ACL=false
+
+    abilit.ACL_SERVER=http://localhost:8090
+
+    #security.hashAlgorithm=NONE
+
+    #grove.url=http://mango.serotoninsoftware.com/servlet
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vroc-webscada-$DEPLOYMENTTYPE-db-configmap
+  namespace: vroc-webscada-$DEPLOYMENTTYPE
+data:
+  "MYSQL_DATABASE": "scadabr"
+  "MYSQL_USER": "vroc"
+  "MYSQL_PASSWORD": "sadlkJ39u329jfoejgeFDFdf3434"
+  "MYSQL_ROOT_PASSWORD": "sadlkJ39u329jfoejgeFDFdf3434"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vroc-webscada-$DEPLOYMENTTYPE-db-statefulset
+  namespace: vroc-webscada-$DEPLOYMENTTYPE
+  labels:
+    app: vroc-webscada-$DEPLOYMENTTYPE-db
+spec:
+  serviceName: "vroc-webscada-$DEPLOYMENTTYPE-db"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vroc-webscada-$DEPLOYMENTTYPE-db
+  template:
+    metadata:
+      labels:
+        app: vroc-webscada-$DEPLOYMENTTYPE-db
+    spec:
+      containers:
+      - name: vroc-webscada-$DEPLOYMENTTYPE-db
+        image: mysql:5.7
+        envFrom:
+        - configMapRef:
+            name: vroc-webscada-$DEPLOYMENTTYPE-db-configmap
+        ports:
+        - containerPort: 3306
+          name: mysqldb
+        volumeMounts:
+        - name: pv-data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: pv-data
+        persistentVolumeClaim:
+          claimName: vroc-webscada-$DEPLOYMENTTYPE-db-mysql-pv-claim
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vroc-webscada-$DEPLOYMENTTYPE-deployment
+  namespace: vroc-webscada-$DEPLOYMENTTYPE
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vroc-webscada-$DEPLOYMENTTYPE-app
+  template:
+    metadata:
+      labels:
+        app: vroc-webscada-$DEPLOYMENTTYPE-app
+    spec:
+      containers:
+      - name: vroc-webscada-$DEPLOYMENTTYPE-app
+        image: $DOCKERREGISTRY/vroc/$IMAGENAME:$VERSION
+        imagePullPolicy: Always
+        ports:
+         - containerPort: 3000
+        envFrom:
+         - configMapRef:
+            name: vroc-webscada-$DEPLOYMENTTYPE-app-configmap
+        volumeMounts:
+#        - name: env-properties
+#          mountPath: /usr/local/tomcat/webapps/web-scada/WEB-INF/classes/config
+        - name: uploads-pv
+          mountPath: /usr/local/tomcat/webapps/ScadaLTS/uploads
+      imagePullSecrets:
+       - name: $KUBERNETES_SECRET_NAME
+      volumes:
+#      - name: env-properties
+#        configMap:
+#          name: vroc-webscada-$DEPLOYMENTTYPE-app-env-configmap
+      - name: uploads-pv
+        persistentVolumeClaim:
+          claimName: vroc-webscada-$DEPLOYMENTTYPE-app-uploads-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vroc-webscada-$DEPLOYMENTTYPE-app-service
+  namespace: vroc-webscada-$DEPLOYMENTTYPE
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: vroc-webscada-$DEPLOYMENTTYPE-app
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vroc-webscada-db-service
+  namespace: vroc-webscada-$DEPLOYMENTTYPE
+spec:
+  ports:
+    - name: mysqldb
+      protocol: TCP
+      port: 3306
+      targetPort: 3306
+  selector:
+    app: vroc-webscada-$DEPLOYMENTTYPE-db
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: vroc-webscada-$DEPLOYMENTTYPE-ingress
+  namespace: vroc-webscada-$DEPLOYMENTTYPE
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt"
+spec:
+  tls:
+  - hosts:
+    - webscada.$DEPLOYMENTTYPE.k8s.vroc.ai
+    secretName: webscada-$DEPLOYMENTTYPE-k8s-vroc-ai-tls
+  rules:
+  - host: webscada.$DEPLOYMENTTYPE.k8s.vroc.ai
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: vroc-webscada-$DEPLOYMENTTYPE-app-service
+          servicePort: 8080
+---

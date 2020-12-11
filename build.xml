@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<project basedir="." default="war" name="ScadaLTS">
+	<property environment="env"/>
+	<property name="debuglevel" value="source,lines,vars"/>
+	<property name="target" value="1.8"/>
+	<property name="source" value="1.8"/>
+	<property name="version" value="2.3.0-SNAPSHOT"/>
+
+	<path id="classpaths">
+		<fileset dir="WebContent/WEB-INF/lib/">
+			<include name="*.jar"/>
+		</fileset>
+		<fileset dir="${env.CATALINA_HOME}/lib/">
+			<include name="*.jar"/>
+		</fileset>
+	</path>
+
+	<target name="tomcat-run" depends="tomcat-clean-static-content" description="Run on tomcat (run as sudo -sE)">
+		<sequential>
+			<exec executable="cmd" osfamily="winnt">
+				<arg value="/c"/>
+				<arg value="%CATALINA_HOME%\bin\startup.bat"/>
+			</exec>
+			<exec executable="/bin/bash" osfamily="unix">
+				<arg value="${env.CATALINA_HOME}/bin/startup.sh"/>
+			</exec>
+		</sequential>
+	</target>
+
+	<target name="tomcat-stop" description="Stop Apache Tomcat (run as sudo -sE)">
+		<sequential>
+			<exec executable="cmd" osfamily="winnt">
+				<arg value="/c"/>
+				<arg value="%CATALINA_HOME%\bin\shutdown.bat"/>
+			</exec>
+			<exec executable="/bin/bash" osfamily="unix">
+				<arg value="${env.CATALINA_HOME}/bin/shutdown.sh"/>
+			</exec>
+		</sequential>
+	</target>
+
+	<target name="tomcat-deploy" description="Deploy prepared WAR file from project dir to Tomcat webapps folder (run as sudo -sE)">
+		<copy file="${ant.project.name}.war" todir="${env.CATALINA_HOME}/webapps" overwrite="true">
+		</copy>
+	</target>
+
+	<target name="tomcat-clean-static-content" description="Delete static content">
+		<delete dir="${env.CATALINA_HOME}/work/Catalina/localhost">
+		</delete>
+	</target>
+
+	<target name="tomcat-clean-app" description="Delete app files">
+		<delete dir="${env.CATALINA_HOME}/webapps/${ant.project.name}/">
+		</delete>
+	</target>
+
+	<target name="clean">
+		<delete>
+			<fileset dir=".">
+				<include name="*.war"/>
+			</fileset>
+		</delete>
+		<delete dir="target/"/>
+		<delete dir="build/"/>
+		<delete dir="node/"/>
+		<delete dir="node_modules/"/>
+		<delete dir="scadalts-ui/node_modules/"/>
+		<delete dir="WebContent/resources/npm/"/>
+		<delete dir="WebContent/WEB-INF/classes/"/>
+		<delete dir="WebContent/resources/js-ui/"/>
+	</target>
+
+	<target  name="java-build">
+		<mkdir dir="WebContent/WEB-INF/classes"/>
+		<javac classpathref="classpaths" includeJavaRuntime="true" debug="true" debuglevel="${debuglevel}" destdir="WebContent/WEB-INF/classes" includeantruntime="false" source="${source}" target="${target}">
+			<src path="src"/>
+			<src path="test"/>
+		</javac>
+
+		<copy includeemptydirs="false" todir="WebContent/WEB-INF/classes" taskname="copy resources to WebContent">
+			<fileset dir="resources">
+				<include name="*"/>
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="install">
+		<exec dir="./scadalts-ui" executable="npm">
+			<arg value="install"/>
+			<arg value="--unsafe-perm=true"/>
+		</exec>
+		<exec dir="." executable="npm">
+			<arg value="install"/>
+		</exec>
+		<mkdir dir="WebContent/resources/npm/"/>
+		<copy includeemptydirs="false" todir="WebContent/resources/npm/" taskname="copy node modules to /WebContent/resources/npm/">
+			<fileset dir="node_modules">
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="ui-build">
+		<exec dir="./scadalts-ui" executable="npm">
+			<arg value="run"/>
+			<arg value="build"/>
+		</exec>
+	</target>
+
+	<target name="ui-serve">
+		<exec dir="./scadalts-ui" executable="npm">
+			<arg value="run"/>
+			<arg value="serve"/>
+		</exec>
+	</target>
+
+	<target name="vue-ui-serve">
+		<exec dir="./scadalts-ui" executable="npm">
+			<arg value="run"/>
+			<arg value="vue-ui"/>
+		</exec>
+	</target>
+
+	<target name="war" description="Bundles the application as a WAR file" depends="java-build, ui-build">
+		<war destfile="${ant.project.name}.war" basedir="WebContent" needxmlfile="false">
+		</war>
+	</target>
+
+	<target name="docker-build" depends="install, war" description="Create a docker image">
+		<exec executable="docker">
+			<arg value="build"/>
+			<arg value="-t"/>
+			<arg value="scada-lts/server:${version}"/>
+			<arg value="."/>
+		</exec>
+	</target>
+
+	<target name="docker-run" description="Run the docker image">
+		<exec executable="docker">
+			<arg value="run"/>
+			<arg value="--name"/>
+			<arg value="scada-lts"/>
+			<arg value="-p"/>
+			<arg value="8080:8080"/>
+			<arg value="--link=scada-lts-db"/>
+			<arg value="-e"/>
+			<arg value="JAVA_OPTS=-Ddb.url=jdbc:mysql://scada-lts-db/scadalts?useSSL=false"/>
+			<arg value="-d"/>
+			<arg value="scada-lts/server:${version}"/>
+		</exec>
+	</target>
+
+	<target name="docker-stop" description="Stop the docker image">
+		<exec executable="docker">
+			<arg value="rm"/>
+			<arg value="-f"/>
+			<arg value="scada-lts"/>
+		</exec>
+	</target>
+
+
+	<target name="test">
+		<junit printsummary="yes" haltonfailure="no">
+			<formatter type="plain" usefile="false" />
+			<classpath>
+				<path refid="classpaths"/>
+				<pathelement location="src"/>
+				<pathelement location="test"/>
+			</classpath>
+
+			<test name="org.scada_lts.cached.DataPointsCacheComposeDataSourcesDataTest"
+		    	haltonfailure="yes">
+			</test>
+			<test name="org.scada_lts.cached.DataSourcePointsCacheMockitoTest"
+		    	haltonfailure="yes">
+			</test>
+			<test name="com.serotonin.mango.rt.dataImage.PointValueCacheTest"
+				  haltonfailure="yes">
+			</test>
+			<test name="com.serotonin.mango.rt.dataImage.PointValueFacadeTest"
+				  haltonfailure="yes">
+			</test>
+			<test name="com.serotonin.mango.web.dwr.DataPointDetailsDwrTest"
+				  haltonfailure="yes">
+			</test>
+			<test name="com.serotonin.mango.rt.dataImage.PointValueTimeTest"
+				  haltonfailure="yes">
+			</test>
+			<test name="com.serotonin.mango.rt.dataImage.AnnotatedPointValueTimeTest"
+				  haltonfailure="yes">
+			</test>
+			<test name="org.scada_lts.dao.PointValueDAOTest"
+				  haltonfailure="yes">
+			</test>
+		</junit>
+	</target>
+</project>

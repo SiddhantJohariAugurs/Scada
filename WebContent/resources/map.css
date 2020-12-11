@@ -1,0 +1,26 @@
+#map {
+    position: relative;
+    /* height: calc(100vh - 180px); */
+    overflow: hidden;
+}
+#viewContent {
+    position: relative;
+}
+#viewContent img {
+	border: 1px lightgray solid;
+}
+#map-area, #map-area #map {
+    position: relative;
+    height: calc(100vh - 310px);
+}
+.overlay {
+    position: relative;
+}
+.view-edit-form .relative-table, .view-edit-form .relative-table table {
+	border: none;
+	margin-bottom: 0px;
+}
+.view-edit-form .relative-table table td {
+	padding: 0px;
+	border: none;
+} 

@@ -1,0 +1,6 @@
+name=Pump Mode
+type=imageSet
+width=161
+height=21
+text.x=14
+text.y=2

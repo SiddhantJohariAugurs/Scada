@@ -1,0 +1,1 @@
+<script src="resources/js-ui/js/sleep-and-reactivation-ds-component.js"></script>
