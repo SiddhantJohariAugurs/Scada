@@ -53,14 +53,17 @@
         <tr class="zoomRow">
           <td class="formLabelRequired">Zoom</td>
           <td class="formField">
-            <input class="editorZoom" id="customEditorZoom" type="text"/>
+            <input class="editorZoom" id="customEditorZoom" type="text" value="0"/>
             <input type="button" onclick="setCurrentZoom(event)" value="Set Current"/>
           </td>
         </tr>
         <tr class="layernameRow">
-          <td class="formLabelRequired">Layer</td>
+          <td class="formLabelRequired">Layers</td>
           <td class="formField">
-            <select name="selectedLayers[]" multiple="multiple" class="fetchGenerateLayersOptions" id="customEditorLayerName">
+            <select multiple="multiple" class="fetchGenerateLayersOptions" id="customEditorLayerName">
+              <option value="1" data-status="locked">One</option>
+              <option value="2">Two</option>
+              <option value="3">Three</option>
             </select>
           </td>
         </tr>
@@ -103,11 +106,9 @@
         this.typeName = null;
         
         this.open = function(compId) {
-            customEditor.componentId = compId;
-            
+            customEditor.componentId = compId;            
             // Set the renderers for the data type of this point view.
             ViewDwr.getViewComponent(compId, customEditor.setViewComponent);
-            
         };
 
         this.setViewComponent = function(comp) {
@@ -115,8 +116,8 @@
 
             // Update the data in the form.
             if (comp.typeName == "alarmlist") {
-            	$set("customEditorAlarmListMinAlarmLevel",comp.minAlarmLevel);
-            	$set("messageContent",comp.messageContent);
+                $set("customEditorAlarmListMinAlarmLevel",comp.minAlarmLevel);
+                $set("messageContent",comp.messageContent);
                 $set("customEditorAlarmListMaxListSize",comp.maxListSize);
                 $set("customEditorAlarmListWidth",comp.width);
                 $set("customEditorAlarmListIdColumn",comp.hideIdColumn);
@@ -125,18 +126,31 @@
                 $set("customEditorAlarmListInactivityColumn",comp.hideInactivityColumn);
                 $set("customEditorAlarmListAckColumn",comp.hideAckColumn);
                 $set("hideCriteriaHeader",comp.hideCriteriaHeader);
-
+                jQuery('#customEditorLayerName').select2({
+                  placeholder: "Select layers",
+                  dropdownParent: jQuery("#customEditorPopup"),
+                  templateSelection : function (tag, container){
+                    var $option = jQuery('#customEditorLayerName option[value="'+tag.id+'"]');
+                    if ($option.data('status') === 'locked'){
+                      jQuery(container).addClass('locked-tag');
+                      tag.locked = true; 
+                    }
+                    return tag.text;
+                  }
+                })
+                .on('select2:unselecting', function(e){
+                    if (e.params.args.data.locked) {
+                      e.preventDefault();
+                    }
+                });
+                
             } else if(comp.typeName == "yourCustomComponent") {
 
             }
             show("customEditor_"+ comp.typeName);
             positionCustomEditor(comp.id, "customEditorPopup");
             show("customEditorPopup");
-            jQuery('#customEditorLayerName').select2(
-            {
-                placeholder: "Select layers",
-                dropdownParent: jQuery("#customEditorPopup"),
-            });
+            setZoomLayersOverEditor(customEditor.componentId,"customEditorZoom","customEditorLayerName");
         };
     
         this.close = function() {
@@ -147,10 +161,11 @@
         };
         
         this.save = function() {
-          console.log($get("customEditorZoom"))
-          console.log($get("customEditorLayerName"))
             //hideContextualMessages("graphicRendererEditorPopup");
+            //save zoom & layer
+            saveZoomLayers(customEditor.componentId,"customEditorZoom","customEditorLayerName");
             if (customEditor.typeName == "alarmlist")
+            {
             	ViewDwr.saveAlarmListComponent(
                       customEditor.componentId,
                       $get("customEditorAlarmListMinAlarmLevel"), 
@@ -165,6 +180,7 @@
                       $get("hideCriteriaHeader"), 
                       customEditor.saveCB
                     );
+            }
             else if (customEditor.typeName == "yourCustomComponent")
             	alert('save your custom component component!');
             

@@ -108,15 +108,15 @@
       <tr class="zoomRow">
         <td class="formLabelRequired">Zoom</td>
         <td class="formField">
-        <input class="editorZoom" id="staticEditorZoom" type="text"/>
+        <input class="editorZoom" id="staticEditorZoom" type="text" value="0"/>
         <input type="button" onclick="setCurrentZoom(event)" value="Set Current"/>
         </td>
       </tr>
       <tr class="layernameRow">
-        <td class="formLabelRequired">Layer</td>
+        <td class="formLabelRequired">Layers</td>
         <td class="formField">
-        <select name="selectedLayers[]" multiple="multiple" class="fetchGenerateLayersOptions" id="staticEditorLayerName">
-          <option value="1">One</option>
+        <select multiple="multiple" class="fetchGenerateLayersOptions" id="staticEditorLayerName">
+          <option value="1" data-status="locked">One</option>
           <option value="2">Two</option>
           <option value="3">Three</option>
         </select>
@@ -138,6 +138,7 @@
             hide('flexEditor');
             
             staticEditor.componentId = compId;
+
             ViewDwr.getViewComponent(compId, function(comp) {
                 // Update the data in the form.
                 staticEditor.component = comp;
@@ -214,11 +215,25 @@
           }
             positionEditor(compId, "staticEditorPopup");
           });
-          jQuery('#staticEditorLayerName').select2(
-          {
+          jQuery('#staticEditorLayerName').select2({
             placeholder: "Select layers",
             dropdownParent: jQuery("#staticEditorPopup"),
+            templateSelection : function (tag, container){
+              var $option = jQuery('#staticEditorLayerName option[value="'+tag.id+'"]');
+              if ($option.data('status') === 'locked'){
+                jQuery(container).addClass('locked-tag');
+                tag.locked = true; 
+              }
+              return tag.text;
+            }
+          })
+          .on('select2:unselecting', function(e){
+              if (e.params.args.data.locked) {
+                e.preventDefault();
+              }
           });
+          //set zoom & layer on editor
+          setZoomLayersOverEditor(staticEditor.componentId,"staticEditorZoom","staticEditorLayerName");
         };
         
         this.close = function() {
@@ -226,18 +241,20 @@
         };
         
         this.save = function(data,callback) {
-          console.log($get("staticEditorZoom"))
-          console.log($get("staticEditorLayerName"))
             if(staticEditor.component.defName == 'html') {
               ViewDwr.saveHtmlComponent(staticEditor.componentId, $get("staticPointContent"), function() {
                         staticEditor.close();
                         updateHtmlComponentContent("c"+ staticEditor.componentId, $get("staticPointContent"));
                     });
+              //save zoom & layer
+              saveZoomLayers(staticEditor.componentId,"staticEditorZoom","staticEditorLayerName");
             }else if(staticEditor.component.defName == 'calendar') {
               ViewDwr.saveCalendarComponent(staticEditor.componentId, data, function(response) {
                 if (response.hasMessages)
                       showDwrMessages(response.messages);
                 else {
+                    //save zoom & layer
+                    saveZoomLayers(staticEditor.componentId,"staticEditorZoom","staticEditorLayerName");
                   callback();
                 }
                     });
@@ -246,17 +263,21 @@
                 if (response.hasMessages)
                       showDwrMessages(response.messages);
                 else {
+                  //save zoom & layer
+                  saveZoomLayers(staticEditor.componentId,"staticEditorZoom","staticEditorLayerName");
                   staticEditor.close();
                           tempContent = "<a> " +$get("linkText") +"</a>";
                           updateHtmlComponentContent("c"+ staticEditor.componentId, tempContent);
                 }
                         
-                    });
+            });
             } else if(staticEditor.component.defName == 'scriptButton') {
               ViewDwr.saveScriptButtonComponent(staticEditor.componentId, $get("scriptButtonText"), $get("scriptsList"), function(response) {
                 if (response.hasMessages)
                       showDwrMessages(response.messages);
                 else {
+                  //save zoom & layer
+                  saveZoomLayers(staticEditor.componentId,"staticEditorZoom","staticEditorLayerName");
                   staticEditor.close();
                           tempContent = "<button> " +$get("scriptButtonText") +"</button>";
                           updateHtmlComponentContent("c"+ staticEditor.componentId, tempContent);
@@ -268,6 +289,8 @@
                   if (response.hasMessages)
                         showDwrMessages(response.messages);
                   else {
+                    //save zoom & layer
+                    saveZoomLayers(staticEditor.componentId,"staticEditorZoom","staticEditorLayerName");
                     staticEditor.close();
                             tempContent = 
                               "<div style='background-color: silver; border: 1px solid red; width: "+ ($get("chartComparatorWidth")*2) +"px; height: "+$get("chartComparatorHeight") +"px;'> <b> <fmt:message key='viewEdit.graphic.saveToLoad'/> </b> </div>";
@@ -287,6 +310,8 @@
                   if (response.hasMessages)
                         showDwrMessages(response.messages);
                   else {
+                    //save zoom & layer
+                    saveZoomLayers(staticEditor.componentId,"staticEditorZoom","staticEditorLayerName");
                     staticEditor.close();
                             tempContent = 
                               "<div style='background-color: silver; border: 1px solid red; width: "+ $get("flexWidth") +"px; height: "+$get("flexHeight") +"px;'> <b> <fmt:message key='viewEdit.graphic.saveToLoad'/> </b> </div>";
@@ -295,10 +320,9 @@
                             //$(componentId).style.top=  "0px";
                             //$(componentId).style.left=  "0px";
                             //updateViewComponentLocation(componentId);
-
                             //resizeViewBackground($get("flexWidth"), $get("flexHeight"));
                   }
-                    });
+              });
             }
 
             ViewDwr.setViewComponentLocation(staticEditor.componentId, $get("staticEditorXPosition"), $get("staticEditorYPosition"));

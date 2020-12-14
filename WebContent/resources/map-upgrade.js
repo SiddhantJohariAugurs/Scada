@@ -268,12 +268,11 @@ function saveInfo() {
         var allMarkerObj = {}, markerObjectsData = [], centerInfo = renderedMap.center.toJSON();
         markers.forEach(function (elem, idx) {
             var position = elem.position.toJSON();
-            markerObjectsData.push({ 'lat': position.lat, 'lng': position.lng, "id": elem.id, "dwrId": elem.dwrId, "content": elem.type });
+            markerObjectsData.push({ 'lat': position.lat, 'lng': position.lng, "id": elem.id, "dwrId": elem.dwrId, "content": elem.type,"zoom":elem.zoom,"layers": elem.layers });
         });
         allMarkerObj["center"] = { 'lat': centerInfo.lat, 'lng': centerInfo.lng }
         allMarkerObj["zoom"] = renderedMap.zoom;
         allMarkerObj["marker"] = markerObjectsData;
-
         document.getElementById("viewMapData").value = JSON.stringify(allMarkerObj);
     }
 }
@@ -323,6 +322,24 @@ function handleClick(myRadio) {
 function setCurrentZoom(event){
     jQuery(event.target).parent('td').find('.editorZoom').val(renderedMap.zoom);
 }
+//save Zoom Layers of all components
+function saveZoomLayers(componentId,zoomElemId,layersElemId){
+    markers && markers.forEach(function (elem, idx) {
+        if(elem.dwrId === "c"+componentId){
+            elem['zoom']=jQuery('#'+zoomElemId).val();
+            elem['layers']=jQuery('#'+layersElemId).val();
+        }
+    });
+}
+//setting Zoom Layers of all editors
+function setZoomLayersOverEditor(componentId,zoomElemId,layersElemId){
+    markers && markers.forEach(function (elem, idx) {
+        if(elem.dwrId === "c"+componentId){
+          jQuery('#'+zoomElemId).val(elem.zoom? elem.zoom : 0);
+          jQuery('#'+layersElemId).val(elem.layers? elem.layers : [jQuery('#'+layersElemId+' option[data-status="locked"]').val()]).trigger('change');
+        }
+    });
+}
 jQuery(function(){
     // dropdown multiselect Get All Layer
     if(jQuery('.fetchGenerateLayersOptions'))
@@ -334,7 +351,13 @@ jQuery(function(){
                 jQuery(".fetchGenerateLayersOptions").html('');
                 if(resp  && resp["data"] && resp["data"].length){
                     resp["data"].forEach(function(elem){
-                        var newOpt=jQuery("<option value="+elem.layerId+">"+elem.layerName+"</option>")
+                        if(elem.layerId === 1 || elem.layerId === '1'){
+                            var newOpt=jQuery('<option value="'+elem.layerId+'" data-status="locked">'+elem.layerName+'</option>');
+                        }
+                        else
+                        {
+                            var newOpt=jQuery("<option value="+elem.layerId+">"+elem.layerName+"</option>");
+                        }
                         jQuery(".fetchGenerateLayersOptions").append(newOpt);
                     })
                 }
@@ -343,17 +366,21 @@ jQuery(function(){
                 console.warn(errorThrown.message)
             }
         });
-
 })
 jQuery(document)
 .on("blur",".editorZoom",function(e){
-    var newval=parseInt(jQuery(this).val());
-    if (isNaN(newval)) {
+    var newval=jQuery(this).val();
+    if(isNaN(newval))
+    {
         console.warn('Please enter integer.');
         jQuery(this).val(0);
+        newval=0;
     }
-    if(newval > 22){
-        jQuery(this).val(22);
-        console.warn('Please enter zoom less or equal to 22.');
+    if(parseInt(newval))
+    {
+        if(newval > 22){
+            jQuery(this).val(22);
+            console.warn('Please enter zoom less or equal to 22.');
+        }
     }
 });

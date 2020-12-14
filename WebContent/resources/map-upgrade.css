@@ -129,6 +129,7 @@ td.img__active input, td.img__active br, td.img__active label[for="googleMap"]
 	margin-top: 1px;
 	margin-left: 0;
 	padding: 3px 2px;
+	min-width: 15px;
 }
 .windowDiv .select2-container--default .select2-selection--multiple{
 	border-color: #39B54A;

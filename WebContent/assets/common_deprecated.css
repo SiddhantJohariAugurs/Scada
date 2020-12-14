@@ -689,3 +689,10 @@ button{
 #selectLayerToFilterComponent{
 	min-width: 221px;
 }
+.viewCompIcon,.hideLayer{
+	display: none;
+}
+/* remove X from locked tag */
+.locked-tag .select2-selection__choice__remove{
+	display: none!important;
+  }

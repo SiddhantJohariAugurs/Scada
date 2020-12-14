@@ -41,14 +41,17 @@
       <tr class="zoomRow">
         <td class="formLabelRequired">Zoom</td>
         <td class="formField">
-          <input class="editorZoom" id="settingEditorZoom" type="text"/>
+          <input class="editorZoom" id="settingEditorZoom" type="text" value="0"/>
           <input type="button" onclick="setCurrentZoom(event)" value="Set Current"/>
         </td>
       </tr>
       <tr class="layernameRow">
-        <td class="formLabelRequired">Layer</td>
+        <td class="formLabelRequired">Layers</td>
         <td class="formField">
-          <select name="selectedLayers[]" multiple="multiple" class="fetchGenerateLayersOptions" id="settingEditorLayerName">
+          <select multiple="multiple" class="fetchGenerateLayersOptions" id="settingEditorLayerName">
+            <option value="1" data-status="locked">One</option>
+            <option value="2">Two</option>
+            <option value="3">Three</option>
           </select>
         </td>
       </tr>
@@ -109,11 +112,26 @@
 
                 positionEditor(compId, "settingsEditorPopup");
                 show("settingsEditorPopup");
-                jQuery('#settingEditorLayerName').select2(
-                {
+
+                jQuery('#settingEditorLayerName').select2({
                   placeholder: "Select layers",
                   dropdownParent: jQuery("#settingsEditorPopup"),
+                  templateSelection : function (tag, container){
+                    var $option = jQuery('#settingEditorLayerName option[value="'+tag.id+'"]');
+                    if ($option.data('status') === 'locked'){
+                      jQuery(container).addClass('locked-tag');
+                      tag.locked = true; 
+                    }
+                    return tag.text;
+                  }
+                })
+                .on('select2:unselecting', function(e){
+                    if (e.params.args.data.locked) {
+                      e.preventDefault();
+                    }
                 });
+                //set zoom & layer on editor
+                setZoomLayersOverEditor(settingsEditor.componentId,"settingEditorZoom","settingEditorLayerName");
             });
         };
         
@@ -122,9 +140,7 @@
             hideContextualMessages("settingsEditorPopup");
         };
         
-        this.save = function() {
-            console.log($get("settingEditorZoom"))
-            console.log($get("settingEditorLayerName"))
+        this.save = function() {             
             hideContextualMessages("settingsEditorPopup");
             ViewDwr.setPointComponentSettings(settingsEditor.componentId, $get("settingsPointList"),
                     $get("settingsPointName"), $get("settingsSettable"), $get("settingsBkgdColor"),
@@ -133,6 +149,8 @@
                     showDwrMessages(response.messages);
                 }
                 else {
+                    //save zoom & layer
+                    saveZoomLayers(settingsEditor.componentId,"settingEditorZoom","settingEditorLayerName");
                     settingsEditor.close();
                     MiscDwr.notifyLongPoll(mango.longPoll.pollSessionId);
                 }

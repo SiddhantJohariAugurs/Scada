@@ -81,8 +81,9 @@ function initMap() {
         mapTypeId: "roadmap",
         styles: mapStyle
     });
+    compareCurrentZoomWithCompZoom(initialZoom);//setup with initial zoom
     renderedMap.addListener("zoom_changed", () => {
-        console.log("Zoom: " + renderedMap.getZoom());
+        compareCurrentZoomWithCompZoom(renderedMap.getZoom());
     });
     if (responseComponentData && responseComponentData.marker && responseComponentData.marker.length) {
         setTimeout(function () {
@@ -103,6 +104,10 @@ function renderAllSavedMarkers(renderedMap) {
             currentNode.className = elem.content;
             currentNode.style.position = "";
             setOverlayContent.appendChild(currentNode);
+            var Img=document.createElement('IMG');
+            Img.src="images/plugin.png";
+            Img.className="viewCompIcon";
+            setOverlayContent.appendChild(Img);
         } else {
             setOverlayContent.innerHTML = elem.content;
         }
@@ -121,7 +126,40 @@ function addMarker(location, mpInfoContent) {
     marker["id"] = location.id;
     markers.push(marker);
 }
-
+function compareCurrentZoomWithCompZoom(currentZoom){
+    responseComponentData.marker.forEach(function (elem, idx) {
+        var $comp = jQuery('#'+elem.dwrId);
+        if(elem.zoom){//no operation with 0 or null zoom
+            if(currentZoom > elem.zoom){
+                $comp.hide();
+                $comp.closest(".overlay").find('.viewCompIcon').show();
+            }
+            else{
+                $comp.show();
+                $comp.closest(".overlay").find('.viewCompIcon').hide();
+            }
+        }
+    })
+}
+function compareCurrentLayersWithCompLAyers(currentLayers){
+    responseComponentData.marker.forEach(function (elem, idx) {
+        if(elem && elem.layers)
+        {
+            var $comp = jQuery('#'+elem.dwrId).closest('.overlay');
+            var savedLayers  = elem.layers;
+            currentLayers=currentLayers? currentLayers : [];
+            var matched = currentLayers.filter(function(obj) { 
+                return savedLayers.indexOf(obj) !== -1; 
+            });
+            if(matched.length){
+                $comp.removeClass('hideLayer');
+            }
+            else{
+                $comp.addClass('hideLayer');
+            }
+        }
+    })
+}
 jQuery(function () {
     // dropdown multiselect Get All Layer
     if (jQuery('.fetchGenerateLayersOptions'))
@@ -133,28 +171,36 @@ jQuery(function () {
                 jQuery(".fetchGenerateLayersOptions").html('');
                 if (resp && resp["data"] && resp["data"].length) {
                     resp["data"].forEach(function (elem) {
-                        var newOpt = jQuery("<option value=" + elem.layerId + ">" + elem.layerName + "</option>")
+                            if(elem.layerId === 1 || elem.layerId === '1'){
+                                var newOpt=jQuery("<option value="+elem.layerId+" selected data-defaultVal="+elem.layerId+">"+elem.layerName+"</option>");
+                            }
+                            else
+                            {
+                                var newOpt=jQuery("<option value="+elem.layerId+">"+elem.layerName+"</option>");
+                            }
                         jQuery(".fetchGenerateLayersOptions").append(newOpt);
                     })
-                    if (jQuery('#selectLayerToFilterComponent').select2())
-                        jQuery('#selectLayerToFilterComponent').select2(
-                            {
-                                placeholder: "Select layers"
+                    jQuery('#selectLayerToFilterComponent').select2(
+                        {
+                            placeholder: "Select layers",
+                        })
+                        .on('select2:unselect', function(e){
+                            var latVals=jQuery('#selectLayerToFilterComponent').val();
+                            if(!latVals){
+                            jQuery('#selectLayerToFilterComponent').val(
+                                [jQuery('#selectLayerToFilterComponent option[data-defaultval]').val()]
+                                ).trigger('change');
                             }
-                        );
+                        });
                 }
             },
-            error: function (XMLHttpRequest, textStatus, errorThrown) {
-        
+            error: function (XMLHttpRequest, textStatus, errorThrown) {        
                 console.warn(errorThrown.message)
             }
         });
-
 })
 jQuery(document)
     .on("change", '#selectLayerToFilterComponent', function () {
         //handle layer change
-        //In Progress
-        console.log("In Progress",jQuery(this).select2("val"));
-
-    })
+        compareCurrentLayersWithCompLAyers(jQuery(this).select2("val"))
+    });

@@ -265,7 +265,11 @@
 				</a>
 			</td>
 			<td>
-				<select name="selectedLayers[]" multiple="multiple" class="fetchGenerateLayersOptions" id="selectLayerToFilterComponent"></select>
+				<select multiple="multiple" class="fetchGenerateLayersOptions" id="selectLayerToFilterComponent">
+					<option value="1" data-defaultVal="1" selected>One</option>
+					<option value="2">Two</option>
+					<option value="3">Three</option>
+				</select>
 			</td>
 		</tr>
 	</table>

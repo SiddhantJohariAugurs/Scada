@@ -49,14 +49,17 @@
 					<tr class="zoomRow">
 					  <td class="formLabelRequired">Zoom</td>
 					  <td class="formField">
-						<input class="editorZoom" id="compoundEditorZoom" type="text"/>
+						<input class="editorZoom" id="compoundEditorZoom" type="text" value="0"/>
 						<input type="button" onclick="setCurrentZoom(event)" value="Set Current"/>
 					  </td>
 					</tr>
 					<tr class="layernameRow">
-					  <td class="formLabelRequired">Layer</td>
+					  <td class="formLabelRequired">Layers</td>
 					  <td class="formField">
-						<select name="selectedLayers[]" multiple="multiple" class="fetchGenerateLayersOptions" id="compoundEditorLayerName">
+						<select multiple="multiple" class="fetchGenerateLayersOptions" id="compoundEditorLayerName">
+							<option value="1" data-status="locked">One</option>
+							<option value="2">Two</option>
+							<option value="3">Three</option>
 						</select>
 					  </td>
 					</tr>
@@ -113,9 +116,11 @@
 	<script type="text/javascript">
     function CompoundEditor() {
         this.component = null;
+        this.componentId = null;
         this.pointList = [];
         
         this.open = function(compId) {
+			compoundEditor.componentId = compId;
             ViewDwr.getViewComponent(compId, function(comp) {
                 compoundEditor.component = comp;
                 $set("compoundComponentName", comp.displayName);
@@ -151,11 +156,26 @@
                 }
                 
 				show("compoundEditorPopup");
-				jQuery('#compoundEditorLayerName').select2(
-				{
-					placeholder: "Select layers",
-					dropdownParent: jQuery("#compoundEditorPopup"),
+
+				jQuery('#compoundEditorLayerName').select2({
+                  placeholder: "Select layers",
+                  dropdownParent: jQuery("#compoundEditorPopup"),
+                  templateSelection : function (tag, container){
+                    var $option = jQuery('#compoundEditorLayerName option[value="'+tag.id+'"]');
+                    if ($option.data('status') === 'locked'){
+                      jQuery(container).addClass('locked-tag');
+                      tag.locked = true; 
+                    }
+                    return tag.text;
+                  }
+                })
+                .on('select2:unselecting', function(e){
+                    if (e.params.args.data.locked) {
+                      e.preventDefault();
+                    }
 				});
+				//set zoom & layer on editor
+                setZoomLayersOverEditor(compoundEditor.componentId,"compoundEditorZoom","compoundEditorLayerName");
             });
             
             positionEditor(compId, "compoundEditorPopup");
@@ -167,10 +187,11 @@
         };
         
         this.save = function() {
-			console.log($get("compoundEditorZoom"))
-			console.log($get("compoundEditorLayerName"))
-            hideContextualMessages("compoundEditorPopup");
-            
+			hideContextualMessages("compoundEditorPopup");
+
+			//save zoom & layer
+			saveZoomLayers(compoundEditor.componentId,"compoundEditorZoom","compoundEditorLayerName");
+			            
             // Gather the point settings
             var pointChildren = compoundEditor.getPointChildren();
             var childPointIds = new Array();
